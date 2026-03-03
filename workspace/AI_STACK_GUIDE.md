@@ -478,4 +478,86 @@ docker logs openclaw3-openclaw-gateway-1 --tail 30 -f
 
 ---
 
+## 🔐 FILES TO SHARE PRIVATELY WITH YOUR BROTHER
+
+The GitHub repo is public and contains **zero real secrets**. Before your brother can run instance 3, he needs the actual credentials sent separately over a **secure channel** (Signal, AirDrop, or iMessage — never email or Discord DM).
+
+---
+
+### What to Send Him
+
+#### 1. The `.env` file (send the whole file)
+
+Location on your machine:
+```
+/Volumes/ai-stack/openclaw/.env.instance3
+```
+
+This single file contains every API key he needs:
+| Variable | What it is |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI — GPT-4 access |
+| `GEMINI_API_KEY` | Google Gemini — used by the `main` agent |
+| `GOOGLE_PLACES_API_KEY` | Google Places API |
+| `OPENCLAW_GATEWAY_TOKEN` | The password to access the OpenClaw web UI |
+| `OLLAMA_API_KEY` | Not a secret — value is literally `ollama-local` |
+
+Tell him to save it as `.env.instance3` (with the leading dot) in the same folder as `docker-compose.yml`.
+
+---
+
+#### 2. The `openclaw.json` configuration (two values to fill in)
+
+The repo contains `openclaw.json.template` with two placeholder values. He needs to fill those in from the `.env.instance3` file:
+
+| Placeholder in template | Replace with |
+|---|---|
+| `YOUR_GATEWAY_TOKEN_HERE` | The value of `OPENCLAW_GATEWAY_TOKEN` from the `.env` file |
+| `YOUR_GOOGLE_PLACES_API_KEY_HERE` | The value of `GOOGLE_PLACES_API_KEY` from the `.env` file |
+
+He should save the filled-in file as `openclaw.json` in the `openclaw-data-3/` directory (no `.template` extension).
+
+---
+
+### How to Share Securely
+
+**Best options:**
+- **AirDrop** — if he's nearby, fastest and encrypted
+- **Signal** — send the file as an attachment, fully encrypted
+- **iMessage** — acceptable for personal keys, but not as strong as Signal
+
+**Never use:**
+- Email (not end-to-end encrypted)
+- Discord DMs (they can be subpoenaed)
+- Pastebin / GitHub Gists
+- Text messages (SMS)
+
+---
+
+### His Setup Steps (Quick Reference)
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/cperos-xr/OpenDnD.git openclaw-data-3
+
+# 2. Put the files you sent him in place
+cp /path/to/received/.env.instance3   /path/to/openclaw/  # next to docker-compose.yml
+cp /path/to/received/openclaw.json    openclaw-data-3/     # the filled-in version
+
+# 3. Install Docker + Ollama on his machine
+#    Then pull the models
+ollama pull phi4-mini
+ollama pull qwen2.5-coder:3b
+
+# 4. Start instance 3
+cd /path/to/openclaw
+docker compose -p openclaw3 --env-file .env.instance3 up -d openclaw-gateway
+
+# 5. Open the UI  →  http://localhost:18785
+```
+
+Full step-by-step is in `openclaw-data-3/setup/README.md` in the repo.
+
+---
+
 *Built on March 3, 2026 · Apple M2 Mac Mini · EMTEC X210 256GB SSD · Ollama 0.17.5 · OpenClaw v2026.2.25*
