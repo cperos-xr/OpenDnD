@@ -25,7 +25,8 @@
 │                                                     │
 │  ┌─────────────────────────────────────────────┐   │
 │  │  Ollama  —  Local AI Engine  (Port 11434)   │   │
-│  │  phi4-mini (2.5GB) · qwen2.5-coder:3b (1.9GB)  │
+│  │  phi4-mini · qwen2.5-coder:3b · llama3.2:3b  │  │
+│  │  phi3:mini · codellama:7b · llama3.1:8b      │  │
 │  └─────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────┘
 ```
@@ -84,7 +85,7 @@ Each running copy of OpenClaw is called an **instance**. We run 3 instances, eac
 
 ## 🤖 THE THREE INSTANCES
 
-### Instance 1 — Personal Assistant
+### Instance 1 — Personal Assistant - Blank Instance
 | | |
 |---|---|
 | **Web UI** | http://localhost:18781 |
@@ -92,14 +93,14 @@ Each running copy of OpenClaw is called an **instance**. We run 3 instances, eac
 | **Data** | `/Volumes/ai-stack/openclaw-data-1/` |
 | **Model** | Google Gemini (primary) |
 
-### Instance 2 — Zeek's Dev Instance
+### Instance 2 — xrtech's Dev Instance
 | | |
 |---|---|
 | **Web UI** | http://localhost:18783 |
 | **Bridge** | http://localhost:18784 |
 | **Data** | `/Volumes/ai-stack/openclaw-data-2/` |
 | **Model** | Google Gemini (primary) |
-| **Extra** | Has Zeek's skills folder + SAM server skill |
+| **Extra** | Has Mr manager and Zeek's skills folder + SAM server skill |
 
 ### Instance 3 — OpenDnD (The Focus of This Guide)
 | | |
@@ -121,12 +122,18 @@ We installed Ollama natively (not in Docker) so it gets full access to the M2 ch
 
 **Models we downloaded (stored on the SSD at `/Volumes/ai-stack/ollama/models/`):**
 
-| Model | Size | Made By | Good At |
-|---|---|---|---|
-| `phi4-mini` | 2.5 GB | Microsoft | General reasoning, creative writing, D&D! |
-| `qwen2.5-coder:3b` | 1.9 GB | Alibaba | Writing code, debugging, technical tasks |
+| Model | Size | Made By | Best For | Agent ID |
+|---|---|---|---|---|
+| `phi4-mini` | 2.5 GB | Microsoft | General reasoning, D&D DM, creative writing | `dm` |
+| `qwen2.5-coder:3b` | 1.9 GB | Alibaba | Code writing, debugging, scripts | `coder` |
+| `llama3.2:3b` | 2.0 GB | Meta | Everyday chat, Q&A, quick answers | `llama32` |
+| `phi3:mini` | 2.2 GB | Microsoft | Reasoning, math, step-by-step logic | `phi3` |
+| `codellama:7b-q4_K_M` | 3.8 GB | Meta | Code (multi-language), reviews, SQL | `codellama` |
+| `llama3.1:8b-q4_K_M` | 4.5 GB | Meta | Long-form writing, complex analysis | `llama31` |
+| `nomic-embed-text` | 0.3 GB | Nomic | Embeddings for RAG semantic search | *(RAG only)* |
 
-**Total local AI storage: ~4.4 GB on the SSD. Both fit in 8GB RAM with room to spare.**
+**Total local AI storage: ~17.2 GB on the SSD.**
+> ⚠️ RAM note: all models except `llama3.1:8b` fit comfortably in 8GB. Run `llama31` by itself with other apps closed for best performance.
 
 <details>
 <summary>Technical: Ollama configuration</summary>
@@ -143,11 +150,53 @@ We installed Ollama natively (not in Docker) so it gets full access to the M2 ch
 
 </details>
 
+## 🔎 RAG (Retrieval-Augmented Generation) — Nomic Embed + Llama 3.2
+
+> **What this adds:** Local semantic search over your documents, plus a local generator that uses the retrieved passages as context. This gives accurate, up-to-date answers grounded in your docs.
+
+- **Embeddings:** `nomic-embed-text` — turns text into vectors for semantic search.
+- **Retriever:** lightweight local retriever (TF-IDF fallback) or embed+vector search.
+- **Generator:** `phi4-mini` or any local Ollama model — receives retrieved passages + user query.
+
+We included a minimal RAG toolset in the repo at `tools/rag/` that provides:
+
+- `index.py` — chunk your markdown/text files into searchable passages.
+- `service.py` — a small FastAPI service with `/query` and `/rag-chat` endpoints. It prefers Ollama `nomic/embed-3-small` for embeddings and falls back to TF-IDF if embeddings are unavailable.
+- `README.md` — full usage and quickstart for the RAG tools.
+
+Quick copy/paste to get RAG running on your machine:
+
+```bash
+# 1) Pull the RAG models into Ollama (stores them on the SSD)
+OLLAMA_MODELS=/Volumes/ai-stack/ollama/models ollama pull nomic-embed-text
+
+# 2) Install Python deps (venv recommended)
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r /Volumes/ai-stack/openclaw-data-3/tools/rag/requirements.txt
+
+# 3) Index your workspace (or any docs folder)
+python3 /Volumes/ai-stack/openclaw-data-3/tools/rag/index.py /Volumes/ai-stack/openclaw-data-3/workspace
+
+# 4) Start the RAG service
+RAG_GEN_MODEL=phi4-mini RAG_EMBED_MODEL=nomic-embed-text python3 /Volumes/ai-stack/openclaw-data-3/tools/rag/service.py
+
+# 5) Test a RAG query
+curl -s -X POST http://127.0.0.1:8765/rag-chat -H "Content-Type: application/json" \
+    -d '{"q":"How do I start instance 3?","k":3}' | python3 -m json.tool
+```
+
+Notes:
+- The service tries `nomic-embed-text` via Ollama HTTP for embeddings; falls back to TF-IDF automatically if unavailable.
+- Generator defaults to `phi4-mini` (already on the SSD). Set `RAG_GEN_MODEL=llama3.1:8b-q4_K_M` for higher quality answers.
+
+
 ---
 
-## 🎭 THE THREE AGENTS IN INSTANCE 3
+## 🎭 THE SEVEN AGENTS IN INSTANCE 3
 
-> **Instance 3 has three distinct personalities you can chat with. Two run 100% offline.**
+> **Instance 3 has seven distinct personalities you can chat with. All run 100% offline (except `main` which uses Gemini by default).**
+> To chat in the browser: open http://localhost:18785, then use the agent/model selector to switch.
 
 ### Agent: `main` — The General Assistant
 - **Model:** Google Gemini (cloud, requires internet)
@@ -166,6 +215,36 @@ We installed Ollama natively (not in Docker) so it gets full access to the M2 ch
 - **Personality:** Terse, efficient engineer. Code-first. No filler.
 - **Best for:** Writing functions, debugging, reviewing code, shell scripts
 - **Workspace:** `/Volumes/ai-stack/openclaw-data-3/workspace-coder/`
+- **Browser test message:** `Write a Python class for a D&D character with name, class, HP, and a take_damage method.`
+
+### Agent: `llama32` — The Everyday Workhorse 💬
+- **Model:** llama3.2:3b (LOCAL — no internet needed)
+- **Personality:** Friendly, fast, practical. Handles anything general.
+- **Best for:** Casual Q&A, quick summaries, everyday chat, brain-dumping ideas
+- **Workspace:** `/Volumes/ai-stack/openclaw-data-3/workspace-llama32/`
+- **Browser test message:** `What are the top 5 tips for a first-time Dungeons & Dragons player?`
+
+### Agent: `phi3` — The Reasoning Engine 🧮
+- **Model:** phi3:mini (LOCAL — no internet needed)
+- **Personality:** Methodical, step-by-step. Shows all working.
+- **Best for:** Math, logic puzzles, evaluating arguments, D&D encounter balance, planning
+- **Workspace:** `/Volumes/ai-stack/openclaw-data-3/workspace-phi3/`
+- **Browser test message:** `A party of 4 level-3 adventurers wants a medium-difficulty encounter. Step by step, calculate appropriate XP budget and suggest monsters from D&D 5e.`
+
+### Agent: `codellama` — The Code Expert 🖥️
+- **Model:** codellama:7b-q4_K_M (LOCAL — no internet needed)
+- **Personality:** Code-first, multi-language expert. Lead with code.
+- **Best for:** Multi-language coding, SQL, API integration, code review, refactoring
+- **Workspace:** `/Volumes/ai-stack/openclaw-data-3/workspace-codellama/`
+- **Browser test message:** `Write a TypeScript interface and class for a D&D Spell with name, level, school, castingTime, and a describe() method.`
+
+### Agent: `llama31` — The Deep Thinker 📚
+- **Model:** llama3.1:8b-q4_K_M (LOCAL — no internet needed)
+- **Personality:** Detailed, nuanced, thorough. Best quality on this machine.
+- **Best for:** Long essays, worldbuilding lore, research summaries, complex multi-part questions
+- **Workspace:** `/Volumes/ai-stack/openclaw-data-3/workspace-llama31/`
+- **⚠️ RAM:** Run alone with other apps closed for best performance.
+- **Browser test message:** `Write a detailed 3-paragraph lore entry for a forgotten god of chaos in a D&D homebrew world, including their origins, fall from grace, and what cultists still worship them for today.`
 
 ---
 
@@ -386,7 +465,109 @@ Open your browser and go to:
 ```
 http://localhost:18785
 ```
-You should see the OpenClaw Control UI. From there you can chat with agents and switch between `main`, `dm`, and `coder` using the agent selector in the UI.
+You should see the OpenClaw Control UI. From there you can chat with each agent using the **agent/model selector**.
+
+---
+
+### TEST 12 — llama32: Everyday chat in the browser
+In the Instance 3 browser UI, **select agent `llama32`**, then type:
+```
+What are the top 5 tips for a first-time Dungeons & Dragons player?
+```
+**What to watch for:** Fast, friendly bullet-point list. No internet. Llama 3.2 3B running on M2 Metal.
+
+Or via curl:
+```bash
+export TOKEN=$(grep OPENCLAW_GATEWAY_TOKEN /Volumes/ai-stack/openclaw/.env.instance3 | cut -d'=' -f2)
+curl -s http://localhost:18785/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"openclaw:llama32","messages":[{"role":"user","content":"What are the top 5 tips for a first-time D&D player?"}],"stream":false}' | python3 -c "import sys,json; print(json.load(sys.stdin)['choices'][0]['message']['content'])"
+```
+
+---
+
+### TEST 13 — phi3: Step-by-step reasoning in the browser
+In the Instance 3 browser UI, **select agent `phi3`**, then type:
+```
+A party of 4 level-3 adventurers wants a medium encounter. Step by step, calculate the XP budget and suggest 2 monsters.
+```
+**What to watch for:** Numbered steps, intermediate calculations, structured output. Phi-3 Mini is purpose-built for this kind of reasoning.
+
+Or via curl:
+```bash
+export TOKEN=$(grep OPENCLAW_GATEWAY_TOKEN /Volumes/ai-stack/openclaw/.env.instance3 | cut -d'=' -f2)
+curl -s http://localhost:18785/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"openclaw:phi3","messages":[{"role":"user","content":"Step by step: a party of 4 level-3 adventurers wants a medium encounter. Calculate XP budget."}],"stream":false}' | python3 -c "import sys,json; print(json.load(sys.stdin)['choices'][0]['message']['content'])"
+```
+
+---
+
+### TEST 14 — codellama: Multi-language code generation in the browser
+In the Instance 3 browser UI, **select agent `codellama`**, then type:
+```
+Write a TypeScript interface and class for a D&D Spell with name, level, school, castingTime, and a describe() method.
+```
+**What to watch for:** Clean TypeScript with types, interface, and class body. CodeLlama 7B was trained specifically on code — expect production-quality output.
+
+Or via curl:
+```bash
+export TOKEN=$(grep OPENCLAW_GATEWAY_TOKEN /Volumes/ai-stack/openclaw/.env.instance3 | cut -d'=' -f2)
+curl -s http://localhost:18785/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"openclaw:codellama","messages":[{"role":"user","content":"Write a TypeScript interface and class for a D&D Spell with name, level, school, castingTime fields and a describe() method."}],"stream":false}' | python3 -c "import sys,json; print(json.load(sys.stdin)['choices'][0]['message']['content'])"
+```
+
+---
+
+### TEST 15 — llama31: Long-form lore writing in the browser
+In the Instance 3 browser UI, **select agent `llama31`**, then type:
+```
+Write a detailed 3-paragraph lore entry for a forgotten god of chaos in a D&D homebrew world, including their origins, fall from grace, and what cultists still worship them for today.
+```
+**What to watch for:** Rich, detailed, multi-paragraph lore. Llama 3.1 8B is the highest-quality local model on this machine.
+> ⚠️ Close other apps before running this test — it uses ~4.5GB RAM.
+
+Or via curl:
+```bash
+export TOKEN=$(grep OPENCLAW_GATEWAY_TOKEN /Volumes/ai-stack/openclaw/.env.instance3 | cut -d'=' -f2)
+curl -s http://localhost:18785/v1/chat/completions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"openclaw:llama31","messages":[{"role":"user","content":"Write a detailed 3-paragraph lore entry for a forgotten god of chaos in a D&D homebrew world."}],"stream":false}' | python3 -c "import sys,json; print(json.load(sys.stdin)['choices'][0]['message']['content'])"
+```
+
+---
+
+### TEST 16 — RAG: Index docs and query them
+
+First start the RAG service (one terminal):
+```bash
+cd /Volumes/ai-stack/openclaw-data-3/tools/rag
+python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+
+# Index the workspace docs
+python3 index.py /Volumes/ai-stack/openclaw-data-3/workspace
+
+# Start the service
+RAG_GEN_MODEL=phi4-mini RAG_EMBED_MODEL=nomic-embed-text python3 service.py
+```
+
+In a second terminal, test it:
+```bash
+# Retrieve relevant passages
+curl -s 'http://127.0.0.1:8765/query?q=How+do+I+start+instance+3&k=3' | python3 -m json.tool
+
+# Full RAG chat (retrieve + generate answer)
+curl -s -X POST http://127.0.0.1:8765/rag-chat \
+  -H "Content-Type: application/json" \
+  -d '{"q":"How do I start instance 3 and verify its running?","k":3}' | python3 -m json.tool
+```
+**What to watch for:** The `answer` field contains a generated response grounded in your actual workspace docs.
 
 ---
 
@@ -396,6 +577,11 @@ You should see the OpenClaw Control UI. From there you can chat with agents and 
 |---|---|---|
 | `phi4-mini` model | ❌ No | Runs entirely on M2 chip |
 | `qwen2.5-coder:3b` model | ❌ No | Runs entirely on M2 chip |
+| `llama3.2:3b` model | ❌ No | Runs entirely on M2 chip |
+| `phi3:mini` model | ❌ No | Runs entirely on M2 chip |
+| `codellama:7b-q4_K_M` model | ❌ No | Runs entirely on M2 chip |
+| `llama3.1:8b-q4_K_M` model | ❌ No | Runs entirely on M2 chip — close other apps |
+| `nomic-embed-text` (RAG) | ❌ No | Runs entirely on M2 chip |
 | Google Gemini (Instance 3 `main`) | ✅ Yes | Requires GEMINI_API_KEY |
 | OpenAI GPT (fallback) | ✅ Yes | Requires OPENAI_API_KEY |
 | GitHub (OpenDnD repo) | ✅ Yes | Only for pushing/pulling code |
@@ -419,11 +605,24 @@ You should see the OpenClaw Control UI. From there you can chat with agents and 
 │   ├── workspace-dm/       ← DM agent workspace
 │   │   ├── SOUL.md         ← DM personality
 │   │   └── AGENTS.md       ← DM operating instructions
-│   └── workspace-coder/    ← Coder agent workspace
-│       ├── SOUL.md         ← Coder personality
-│       └── AGENTS.md       ← Coder operating instructions
+│   ├── workspace-coder/    ← Coder agent (qwen2.5-coder:3b)
+│   │   ├── SOUL.md
+│   │   └── AGENTS.md
+│   ├── workspace-llama32/  ← Everyday chat agent (llama3.2:3b)
+│   │   ├── SOUL.md
+│   │   └── AGENTS.md
+│   ├── workspace-phi3/     ← Reasoning agent (phi3:mini)
+│   │   ├── SOUL.md
+│   │   └── AGENTS.md
+│   ├── workspace-codellama/ ← CodeLlama agent (codellama:7b-q4_K_M)
+│   │   ├── SOUL.md
+│   │   └── AGENTS.md
+│   ├── workspace-llama31/  ← Long-form agent (llama3.1:8b-q4_K_M)
+│   │   ├── SOUL.md
+│   │   └── AGENTS.md
+│   └── tools/rag/          ← RAG toolset (index.py, service.py)
 ├── ollama/
-│   └── models/             ← phi4-mini (2.5GB) + qwen2.5-coder:3b (1.9GB)
+│   └── models/             ← All 7 models (~17GB total)
 └── deployment-kit/         ← Scripts to spin up new instances
     └── deploy-instance.sh
 ```
@@ -433,7 +632,7 @@ You should see the OpenClaw Control UI. From there you can chat with agents and 
 ## 🚀 WHAT'S NEXT / FUTURE IDEAS
 
 - [ ] Give the `dm` agent campaign notes to remember between sessions (it already has a workspace for this)
-- [ ] Pull a larger model like `llama3.2:7b` when you want more capability (requires ~5GB, fits on 8GB M2 with tight margins)
+- [x] Pull larger models — `llama3.2:3b`, `phi3:mini`, `codellama:7b-q4_K_M`, `llama3.1:8b-q4_K_M` all added ✅
 - [ ] Connect Instance 3 to Discord so your brother can DM the AI from his phone
 - [ ] Record a video walkthrough using these tests as the shot list
 - [ ] Deploy a 4th instance for a new project using `deployment-kit/deploy-instance.sh`
@@ -445,8 +644,12 @@ You should see the OpenClaw Control UI. From there you can chat with agents and 
 ```bash
 # --- OLLAMA ---
 ollama list                          # See installed models
-ollama run phi4-mini                 # Chat with DM model (interactive)
-ollama run qwen2.5-coder:3b          # Chat with coder model (interactive)
+ollama run phi4-mini                 # DM agent model (interactive)
+ollama run qwen2.5-coder:3b          # Coder agent model (interactive)
+ollama run llama3.2:3b               # Everyday chat model (interactive)
+ollama run phi3:mini                 # Reasoning model (interactive)
+ollama run codellama:7b-q4_K_M       # CodeLlama model (interactive)
+ollama run llama3.1:8b-q4_K_M        # Best quality model — close other apps first!
 brew services start ollama           # Start Ollama if it's not running
 brew services stop ollama            # Stop Ollama
 
@@ -475,88 +678,6 @@ docker logs openclaw3-openclaw-gateway-1 --tail 30 -f
 # Instance 2: http://localhost:18783
 # Instance 3: http://localhost:18785   ← OpenDnD with DM + Coder agents
 ```
-
----
-
-## 🔐 FILES TO SHARE PRIVATELY WITH YOUR BROTHER
-
-The GitHub repo is public and contains **zero real secrets**. Before your brother can run instance 3, he needs the actual credentials sent separately over a **secure channel** (Signal, AirDrop, or iMessage — never email or Discord DM).
-
----
-
-### What to Send Him
-
-#### 1. The `.env` file (send the whole file)
-
-Location on your machine:
-```
-/Volumes/ai-stack/openclaw/.env.instance3
-```
-
-This single file contains every API key he needs:
-| Variable | What it is |
-|---|---|
-| `OPENAI_API_KEY` | OpenAI — GPT-4 access |
-| `GEMINI_API_KEY` | Google Gemini — used by the `main` agent |
-| `GOOGLE_PLACES_API_KEY` | Google Places API |
-| `OPENCLAW_GATEWAY_TOKEN` | The password to access the OpenClaw web UI |
-| `OLLAMA_API_KEY` | Not a secret — value is literally `ollama-local` |
-
-Tell him to save it as `.env.instance3` (with the leading dot) in the same folder as `docker-compose.yml`.
-
----
-
-#### 2. The `openclaw.json` configuration (two values to fill in)
-
-The repo contains `openclaw.json.template` with two placeholder values. He needs to fill those in from the `.env.instance3` file:
-
-| Placeholder in template | Replace with |
-|---|---|
-| `YOUR_GATEWAY_TOKEN_HERE` | The value of `OPENCLAW_GATEWAY_TOKEN` from the `.env` file |
-| `YOUR_GOOGLE_PLACES_API_KEY_HERE` | The value of `GOOGLE_PLACES_API_KEY` from the `.env` file |
-
-He should save the filled-in file as `openclaw.json` in the `openclaw-data-3/` directory (no `.template` extension).
-
----
-
-### How to Share Securely
-
-**Best options:**
-- **AirDrop** — if he's nearby, fastest and encrypted
-- **Signal** — send the file as an attachment, fully encrypted
-- **iMessage** — acceptable for personal keys, but not as strong as Signal
-
-**Never use:**
-- Email (not end-to-end encrypted)
-- Discord DMs (they can be subpoenaed)
-- Pastebin / GitHub Gists
-- Text messages (SMS)
-
----
-
-### His Setup Steps (Quick Reference)
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/cperos-xr/OpenDnD.git openclaw-data-3
-
-# 2. Put the files you sent him in place
-cp /path/to/received/.env.instance3   /path/to/openclaw/  # next to docker-compose.yml
-cp /path/to/received/openclaw.json    openclaw-data-3/     # the filled-in version
-
-# 3. Install Docker + Ollama on his machine
-#    Then pull the models
-ollama pull phi4-mini
-ollama pull qwen2.5-coder:3b
-
-# 4. Start instance 3
-cd /path/to/openclaw
-docker compose -p openclaw3 --env-file .env.instance3 up -d openclaw-gateway
-
-# 5. Open the UI  →  http://localhost:18785
-```
-
-Full step-by-step is in `openclaw-data-3/setup/README.md` in the repo.
 
 ---
 

@@ -40,3 +40,4 @@ workspace-*/.openclaw/
 .DS_Store?
 ._*
 Thumbs.db
+tools/rag/chunks.jsonl
