@@ -120,19 +120,21 @@ You should see the OpenClaw Control UI with all 7 agents ready.
 
 ## How to chat with a specific agent
 
-The browser UI connects to the `main` agent by default. To switch agents, type one of these commands in the chat input and press Enter:
+The browser UI connects to the `main` agent by default. To switch agents, navigate to the URL for that agent in your browser:
 
-| Agent | Type in chat | Model |
+| Agent | Browser URL | Model |
 |---|---|---|
-| Dungeon Master | `/session agent:dm:main` | phi4-mini |
-| Code Specialist | `/session agent:coder:main` | qwen2.5-coder:3b |
-| Everyday Chat | `/session agent:llama32:main` | llama3.2:3b |
-| Reasoning Engine | `/session agent:phi3:main` | phi3:mini |
-| Code Expert | `/session agent:codellama:main` | codellama:7b |
-| Deep Thinker | `/session agent:llama31:main` | llama3.1:8b |
-| Back to main | `/session agent:main:main` | Gemini/phi4-mini |
+| Default (main) | `http://localhost:18785/` | Gemini/phi4-mini |
+| Dungeon Master | `http://localhost:18785/?session=agent:dm:main` | phi4-mini |
+| Code Specialist | `http://localhost:18785/?session=agent:coder:main` | qwen2.5-coder:3b |
+| Everyday Chat | `http://localhost:18785/?session=agent:llama32:main` | llama3.2:3b |
+| Reasoning Engine | `http://localhost:18785/?session=agent:phi3:main` | phi3:mini |
+| Code Expert | `http://localhost:18785/?session=agent:codellama:main` | codellama:7b |
+| Deep Thinker | `http://localhost:18785/?session=agent:llama31:main` | llama3.1:8b |
 
-The UI header updates to confirm the active agent.
+You can bookmark these URLs to jump straight to any agent. The URL updates automatically when you switch sessions.
+
+> **Note:** The `/session agent:X:main` slash command only works in the Terminal UI (`openclaw tui`), not in the browser chat.
 
 ---
 
