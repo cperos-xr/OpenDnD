@@ -1,7 +1,7 @@
 # AGENTS — Llama 3.1 8B Long-form Agent
 
 Agent ID: `llama31`
-Model: `ollama/llama3.1:8b-q4_K_M`
+Model: `ollama/llama3.1:8b`
 Purpose: Long-form writing, complex reasoning, detailed analysis, research summaries
 
 ## Behaviour

@@ -74,8 +74,8 @@
           "api": "ollama"
         },
         {
-          "id": "codellama:7b-q4_K_M",
-          "name": "CodeLlama 7B Q4 (Local)",
+          "id": "codellama:7b",
+          "name": "CodeLlama 7B (Local)",
           "reasoning": false,
           "input": [
             "text"
@@ -91,8 +91,8 @@
           "api": "ollama"
         },
         {
-          "id": "llama3.1:8b-q4_K_M",
-          "name": "Llama 3.1 8B Q4 (Local)",
+          "id": "llama3.1:8b",
+          "name": "Llama 3.1 8B (Local)",
           "reasoning": false,
           "input": [
             "text"

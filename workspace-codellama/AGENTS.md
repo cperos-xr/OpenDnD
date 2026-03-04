@@ -1,7 +1,7 @@
 # AGENTS — CodeLlama 7B Agent
 
 Agent ID: `codellama`
-Model: `ollama/codellama:7b-q4_K_M`
+Model: `ollama/codellama:7b`
 Purpose: Code generation, debugging, code review, multi-language programming
 
 ## Behaviour

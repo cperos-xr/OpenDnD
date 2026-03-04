@@ -128,11 +128,11 @@ We installed Ollama natively (not in Docker) so it gets full access to the M2 ch
 | `qwen2.5-coder:3b` | 1.9 GB | Alibaba | Code writing, debugging, scripts | `coder` |
 | `llama3.2:3b` | 2.0 GB | Meta | Everyday chat, Q&A, quick answers | `llama32` |
 | `phi3:mini` | 2.2 GB | Microsoft | Reasoning, math, step-by-step logic | `phi3` |
-| `codellama:7b-q4_K_M` | 3.8 GB | Meta | Code (multi-language), reviews, SQL | `codellama` |
-| `llama3.1:8b-q4_K_M` | 4.5 GB | Meta | Long-form writing, complex analysis | `llama31` |
+| `codellama:7b` | 3.8 GB | Meta | Code (multi-language), reviews, SQL | `codellama` |
+| `llama3.1:8b` | 4.9 GB | Meta | Long-form writing, complex analysis | `llama31` |
 | `nomic-embed-text` | 0.3 GB | Nomic | Embeddings for RAG semantic search | *(RAG only)* |
 
-**Total local AI storage: ~17.2 GB on the SSD.**
+**Total local AI storage: ~17.1 GB on the SSD.**
 > ⚠️ RAM note: all models except `llama3.1:8b` fit comfortably in 8GB. Run `llama31` by itself with other apps closed for best performance.
 
 <details>
@@ -579,8 +579,8 @@ curl -s -X POST http://127.0.0.1:8765/rag-chat \
 | `qwen2.5-coder:3b` model | ❌ No | Runs entirely on M2 chip |
 | `llama3.2:3b` model | ❌ No | Runs entirely on M2 chip |
 | `phi3:mini` model | ❌ No | Runs entirely on M2 chip |
-| `codellama:7b-q4_K_M` model | ❌ No | Runs entirely on M2 chip |
-| `llama3.1:8b-q4_K_M` model | ❌ No | Runs entirely on M2 chip — close other apps |
+| `codellama:7b` model | ❌ No | Runs entirely on M2 chip |
+| `llama3.1:8b` model | ❌ No | Runs entirely on M2 chip — close other apps |
 | `nomic-embed-text` (RAG) | ❌ No | Runs entirely on M2 chip |
 | Google Gemini (Instance 3 `main`) | ✅ Yes | Requires GEMINI_API_KEY |
 | OpenAI GPT (fallback) | ✅ Yes | Requires OPENAI_API_KEY |
@@ -648,8 +648,8 @@ ollama run phi4-mini                 # DM agent model (interactive)
 ollama run qwen2.5-coder:3b          # Coder agent model (interactive)
 ollama run llama3.2:3b               # Everyday chat model (interactive)
 ollama run phi3:mini                 # Reasoning model (interactive)
-ollama run codellama:7b-q4_K_M       # CodeLlama model (interactive)
-ollama run llama3.1:8b-q4_K_M        # Best quality model — close other apps first!
+ollama run codellama:7b                # CodeLlama model (interactive)
+ollama run llama3.1:8b                 # Best quality model — close other apps first!
 brew services start ollama           # Start Ollama if it's not running
 brew services stop ollama            # Stop Ollama
 
