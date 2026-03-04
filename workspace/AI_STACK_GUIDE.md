@@ -470,7 +470,7 @@ You should see the OpenClaw Control UI. From there you can chat with each agent 
 ---
 
 ### TEST 12 — llama32: Everyday chat in the browser
-In the Instance 3 browser UI, **select agent `llama32`**, then type:
+Navigate to **`http://localhost:18785/?session=agent:llama32:main`** and type:
 ```
 What are the top 5 tips for a first-time Dungeons & Dragons player?
 ```
@@ -488,7 +488,7 @@ curl -s http://localhost:18785/v1/chat/completions \
 ---
 
 ### TEST 13 — phi3: Step-by-step reasoning in the browser
-In the Instance 3 browser UI, **select agent `phi3`**, then type:
+Navigate to **`http://localhost:18785/?session=agent:phi3:main`** and type:
 ```
 A party of 4 level-3 adventurers wants a medium encounter. Step by step, calculate the XP budget and suggest 2 monsters.
 ```
@@ -506,7 +506,7 @@ curl -s http://localhost:18785/v1/chat/completions \
 ---
 
 ### TEST 14 — codellama: Multi-language code generation in the browser
-In the Instance 3 browser UI, **select agent `codellama`**, then type:
+Navigate to **`http://localhost:18785/?session=agent:codellama:main`** and type:
 ```
 Write a TypeScript interface and class for a D&D Spell with name, level, school, castingTime, and a describe() method.
 ```
@@ -524,7 +524,7 @@ curl -s http://localhost:18785/v1/chat/completions \
 ---
 
 ### TEST 15 — llama31: Long-form lore writing in the browser
-In the Instance 3 browser UI, **select agent `llama31`**, then type:
+Navigate to **`http://localhost:18785/?session=agent:llama31:main`** and type:
 ```
 Write a detailed 3-paragraph lore entry for a forgotten god of chaos in a D&D homebrew world, including their origins, fall from grace, and what cultists still worship them for today.
 ```
